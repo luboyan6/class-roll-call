@@ -145,18 +145,17 @@ export function RollCallStage() {
   const isMulti = pickCount > 1
   const activeMode = MODES.find((m) => m.key === mode) ?? MODES[0]
 
-  /** 多人用网格排布，单人居中大字；姓名本身不再显示学号 */
-  const gridClass = isMulti
-    ? pickCount <= 3
-      ? 'grid w-full grid-cols-1 gap-4 sm:grid-cols-3'
-      : 'grid w-full grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-5'
+  /** 多人结果采用可换行的三等分布局：5 人自动形成上 3 下 2，且下排保持居中 */
+  const resultLayoutClass = isMulti ? 'flex w-full flex-wrap justify-center gap-3 sm:gap-4' : ''
+  const resultItemClass = isMulti
+    ? 'w-[calc((100%-1.5rem)/3)] shrink-0 sm:w-[calc((100%-2rem)/3)]'
     : ''
 
   const nameSize = !isMulti
     ? 'text-7xl sm:text-8xl md:text-9xl'
     : pickCount <= 3
       ? 'text-4xl sm:text-5xl md:text-6xl'
-      : 'text-3xl sm:text-4xl md:text-5xl'
+      : 'text-2xl sm:text-3xl md:text-4xl'
 
   return (
     <section aria-label="点名舞台" className="rounded-lg border border-border bg-card p-6 sm:p-8">
@@ -238,7 +237,7 @@ export function RollCallStage() {
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 1.04 }}
               transition={{ duration: 0.3, ease: 'easeOut' }}
-              className={cn(gridClass, 'w-full')}
+              className={resultLayoutClass}
             >
               {currentPicks.map((s, i) => (
                 <motion.div
@@ -246,7 +245,7 @@ export function RollCallStage() {
                   initial={{ opacity: 0, scale: 0.85, y: 8 }}
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   transition={{ delay: i * 0.12, duration: 0.3, ease: 'easeOut' }}
-                  className="text-center"
+                  className={cn('text-center', resultItemClass)}
                 >
                   <span
                     className={cn(
