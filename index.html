@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>图图课堂点名系统</title>
+    <meta name="description" content="高中课堂随机点名与出勤记录工具，支持加权随机、顺序轮询、出勤统计与记录导出。" />
+    <meta name="theme-color" content="#22C55E" />
+    <script>
+      // 主题预置：在首屏渲染前应用，避免深色模式刷新时闪白
+      (function () {
+        try {
+          var t = localStorage.getItem('roll-call-theme')
+          if (t !== 'light' && t !== 'dark') {
+            t = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+          }
+          if (t === 'dark') document.documentElement.classList.add('dark')
+          document.documentElement.style.colorScheme = t
+        } catch (e) {
+          /* localStorage 不可用时忽略 */
+        }
+      })()
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
