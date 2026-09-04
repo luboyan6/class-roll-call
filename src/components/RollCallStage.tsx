@@ -8,11 +8,11 @@ import type { PickMode, Student } from '@/types'
 import { cn } from '@/lib/utils'
 import { Button } from './ui/Button'
 
-/** 单人逐名浏览；多人按不重复的小组浏览，全班名单完整出现一遍后才揭晓 */
+/** 中途始终单人逐名浏览；抽取人数只影响滚动节奏，不影响中途的展示数量 */
 const ROLL_STEP_MS: Record<number, number> = {
   1: 180,
-  3: 480,
-  5: 700,
+  3: 190,
+  5: 200,
 }
 const REVEAL_HOLD_MS = 900
 /** 多人依次揭晓的间隔，与动画 delay 对齐 */
@@ -39,12 +39,9 @@ function shuffle<T>(items: T[]): T[] {
   return items
 }
 
-/**
- * 取出滚动中的一组名字。
- * 单人模式每次展示 1 人；3/5 人模式按不重叠的小组展示，保证全班每人都出现一次。
- */
-function rollGroup(sequence: Student[], groupIndex: number, count: number): string[] {
-  return Array.from({ length: count }, (_, slot) => sequence[groupIndex * count + slot]?.name ?? '')
+/** 取出滚动中的当前名字：全班名单会逐人出现一次，再循环到开头。 */
+function rollName(sequence: Student[], index: number): string {
+  return sequence[index % sequence.length]?.name ?? ''
 }
 
 export function RollCallStage() {
@@ -81,23 +78,23 @@ export function RollCallStage() {
 
     const count = useRollCallStore.getState().settings.pickCount
     const sequence = shuffle([...useRollCallStore.getState().students])
-    const totalGroups = Math.ceil(sequence.length / count)
-    let nextGroup = 1
+    let nextIndex = 1
 
-    if (sequence.length === 0 || totalGroups === 0) {
+    if (sequence.length === 0) {
       finishRoll()
       return
     }
 
-    const showGroup = (groupIndex: number) => {
-      setDisplayNames(rollGroup(sequence, groupIndex, count))
+    const showName = (index: number) => {
+      // 中途始终只展示一个名字；达到全班人数后从头循环，避免多人模式挤成一排小字
+      setDisplayNames([rollName(sequence, index)])
       setRollFrame((frame) => frame + 1)
-      setRollProgress(Math.min(((groupIndex + 1) * count) / sequence.length, 1))
+      setRollProgress(Math.min((index + 1) / sequence.length, 1))
       soundRef.current.playTick()
     }
 
-    // 第一组立即出现，随后按节奏切换剩余小组，避免点击后空等
-    showGroup(0)
+    // 第一位立即出现，随后逐人浏览完整名单
+    showName(0)
 
     if (reduceMotion) {
       timerRef.current = window.setTimeout(() => finishRoll(), 120)
@@ -107,19 +104,19 @@ export function RollCallStage() {
     }
 
     const stepMs = ROLL_STEP_MS[count] ?? ROLL_STEP_MS[1]
-    const showNextGroup = () => {
-      if (nextGroup >= totalGroups) {
-        // 最后一组多停留一会儿，给课堂现场一个明确的"即将揭晓"悬念
+    const showNextName = () => {
+      if (nextIndex >= sequence.length) {
+        // 全班都出现过后再停留一会儿，给课堂现场一个明确的"即将揭晓"悬念
         timerRef.current = window.setTimeout(() => finishRoll(), REVEAL_HOLD_MS)
         return
       }
 
-      showGroup(nextGroup)
-      nextGroup += 1
-      timerRef.current = window.setTimeout(showNextGroup, stepMs)
+      showName(nextIndex)
+      nextIndex += 1
+      timerRef.current = window.setTimeout(showNextName, stepMs)
     }
 
-    timerRef.current = window.setTimeout(showNextGroup, stepMs)
+    timerRef.current = window.setTimeout(showNextName, stepMs)
 
     return () => {
       if (timerRef.current !== null) window.clearTimeout(timerRef.current)
@@ -186,7 +183,7 @@ export function RollCallStage() {
               transition={{ duration: 0.25, ease: 'easeOut' }}
               className="w-full"
             >
-              <div className="relative flex min-h-[155px] items-center justify-center overflow-hidden rounded-xl border border-accent/20 bg-accent/[0.03] px-3 py-6 sm:min-h-[190px] sm:px-6">
+              <div className="relative flex min-h-[210px] items-center justify-center overflow-hidden rounded-xl border border-accent/20 bg-accent/[0.03] px-3 py-6 sm:min-h-[260px] sm:px-6">
                 <div className="pointer-events-none absolute inset-0 flex items-center justify-center" aria-hidden="true">
                   <motion.div
                     className="h-56 w-56 rounded-full border border-dashed border-accent/30"
@@ -200,7 +197,7 @@ export function RollCallStage() {
                   />
                 </div>
 
-                <div className={cn(gridClass, 'relative z-10')}>
+                <div className="relative z-10 flex w-full items-center justify-center">
                   <AnimatePresence mode="popLayout" initial={false}>
                     {displayNames.map((name, i) => (
                       <motion.span
