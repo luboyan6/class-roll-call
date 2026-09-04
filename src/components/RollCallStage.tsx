@@ -151,8 +151,10 @@ export function RollCallStage() {
     ? 'w-[calc((100%-1.5rem)/3)] shrink-0 sm:w-[calc((100%-2rem)/3)]'
     : ''
 
-  const nameSize = !isMulti
-    ? 'text-7xl sm:text-8xl md:text-9xl'
+  /** 滚动特效统一使用单人字号；多人只在最终结果阶段采用三等分换行布局 */
+  const rollNameSize = 'text-7xl sm:text-8xl md:text-9xl'
+  const resultNameSize = !isMulti
+    ? rollNameSize
     : pickCount <= 3
       ? 'text-4xl sm:text-5xl md:text-6xl'
       : 'text-2xl sm:text-3xl md:text-4xl'
@@ -207,7 +209,7 @@ export function RollCallStage() {
                         transition={{ duration: 0.16, ease: 'easeOut' }}
                         className={cn(
                           'block text-center font-display font-black leading-tight tracking-wide text-accent',
-                          nameSize,
+                          rollNameSize,
                         )}
                       >
                         {name || '—'}
@@ -250,7 +252,7 @@ export function RollCallStage() {
                   <span
                     className={cn(
                       'block font-display font-black leading-tight tracking-wide text-accent',
-                      nameSize,
+                      resultNameSize,
                     )}
                   >
                     {s.name}
