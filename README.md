@@ -26,13 +26,13 @@ npm run preview   # 本地预览构建产物
 
 | 配置项 | 值 |
 | --- | --- |
-| Framework preset | `None` / `Other`（**不要选 VitePress**） |
+| Framework preset | `React (Vite)`（**不要选 VitePress**） |
 | Build command | `npm run build` |
 | Build output directory | `dist` |
 | Root directory | 留空（项目就在仓库根目录） |
 | Node version | `20`（仓库已带 `.nvmrc`） |
 
-如果控制台版本没有 `None` / `Other`，可以保留任意预设，但必须手动把 **Build command** 改成 `npm run build`，并把 **Build output directory** 改成 `dist`。预设只是默认值，不要让它继续写入 `npx vitepress build`。
+Cloudflare 官方把 Vite + React 归在 `React (Vite)` 预设下；如果下拉列表当前滚动位置看不到它，请在预设列表中向上滚动或直接搜索 `React`。如果你的控制台确实没有 `React (Vite)`，再选择自定义/无预设，并手动把 **Build command** 改成 `npm run build`、把 **Build output directory** 改成 `dist`。无论哪种方式，都不能让它继续写入 `npx vitepress build`。
 
 > **注意**：本项目是 Vite + React，不是 VitePress。选择 VitePress 会执行 `npx vitepress build`，
 > 它的产物目录是 `.vitepress/dist`，不会生成本项目需要的 `dist`，于是会报：
