@@ -26,17 +26,33 @@ npm run preview   # 本地预览构建产物
 
 | 配置项 | 值 |
 | --- | --- |
-| Framework preset | `Vite` |
+| Framework preset | `None` / `Other`（**不要选 VitePress**） |
 | Build command | `npm run build` |
 | Build output directory | `dist` |
 | Root directory | 留空（项目就在仓库根目录） |
 | Node version | `20`（仓库已带 `.nvmrc`） |
 
-> **注意**：构建命令无法写进配置文件，只能在控制台设置。如果留空，Cloudflare 会跳过构建，
-> 随后报 `Error: Output directory "public" not found.`，因为 `dist` 从未生成。
+如果控制台版本没有 `None` / `Other`，可以保留任意预设，但必须手动把 **Build command** 改成 `npm run build`，并把 **Build output directory** 改成 `dist`。预设只是默认值，不要让它继续写入 `npx vitepress build`。
 
-仓库中的 `wrangler.toml` 已声明 `pages_build_output_dir = "dist"`，即使控制台的
-输出目录仍是默认值，Cloudflare 也会优先采用配置文件里的值。
+> **注意**：本项目是 Vite + React，不是 VitePress。选择 VitePress 会执行 `npx vitepress build`，
+> 它的产物目录是 `.vitepress/dist`，不会生成本项目需要的 `dist`，于是会报：
+> `Error: Output directory "dist" not found.`
+>
+> 构建命令无法写进 Wrangler 配置文件，只能在 Cloudflare 控制台设置。如果构建命令留空，
+> Cloudflare 会跳过构建并按默认的 `public` 目录校验，同样会失败。
+
+仓库中的 `wrangler.toml` 已声明 `pages_build_output_dir = "dist"`，负责指定最终上传目录；
+控制台里的 Build command 仍必须填写 `npm run build`。
+
+成功的日志应该包含：
+
+```text
+Executing user command: npm run build
+✓ built in ...s
+Validating asset output directory
+```
+
+并且不应再出现 `vitepress`。
 
 ### 修改后重新部署
 
