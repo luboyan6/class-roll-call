@@ -1,0 +1,12 @@
+# Cloudflare Pages 配置
+# 文档：https://developers.cloudflare.com/pages/functions/wrangler-configuration/
+#
+# 说明：构建命令（Build command）无法写在配置文件里，需要在 Cloudflare Pages
+# 控制台的 Settings -> Build & deployments 中设置，详见 README。
+
+name = "class-roll-call"
+compatibility_date = "2026-09-05"
+
+# Vite 的构建产物目录。默认预设会去找 public，导致
+# "Output directory \"public\" not found." 报错。
+pages_build_output_dir = "dist"
