@@ -1,12 +1,23 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
-import { ListOrdered, Play, Scale, Shuffle, User, Users } from 'lucide-react'
+import { ListOrdered, Play, Scale, Shuffle, Square, User, Users } from 'lucide-react'
 import { useRollCallStore } from '@/store/rollCallStore'
 import { useSound } from '@/hooks/useSound'
 import { PICK_COUNT_OPTIONS } from '@/lib/storage'
+import { fireConfetti } from '@/lib/confetti'
 import type { PickMode, Student } from '@/types'
-import { cn } from '@/lib/utils'
-import { Button } from './ui/Button'
+import { cn, todayKey } from '@/lib/utils'
+import { NameSphere, type SpherePhase } from './NameSphere'
+import { ResultCards } from './ResultCards'
+import { ResultMarkBar } from './ResultMarkBar'
+
+/**
+ * 点名舞台 —— 沉浸式主交互区。
+ *
+ * 交互流程对齐 log-lottery：待机球面慢转 → 点名时球面加速并随机跳动名字 → 揭晓时
+ * 结果卡片从球面"飞"到镜头正前方并放礼花。差异在于点名场景需要"把全班浏览一遍"，
+ * 所以滚动阶段额外保留中央大字 + 进度反馈，让老师知道系统确实扫过了每一个人。
+ */
 
 /** 中途始终单人逐名浏览；抽取人数只影响滚动节奏，不影响中途的展示数量 */
 const ROLL_STEP_MS: Record<number, number> = {
@@ -24,7 +35,6 @@ const MODES: { key: PickMode; label: string; icon: typeof Shuffle; hint: string 
   { key: 'sequential', label: '顺序轮询', icon: ListOrdered, hint: '按名单依次点名' },
 ]
 
-/** 抽取人数按钮 */
 const COUNT_META: Record<number, { label: string; icon: typeof User; hint: string }> = {
   1: { label: '单人', icon: User, hint: '一次点 1 人' },
   3: { label: '3 人', icon: Users, hint: '一次抽 3 人，适合小组提问' },
@@ -44,8 +54,44 @@ function rollName(sequence: Student[], index: number): string {
   return sequence[index % sequence.length]?.name ?? ''
 }
 
+/** 胶囊按钮：人数 / 模式切换共用 */
+function Pill({
+  active,
+  disabled,
+  onClick,
+  title,
+  children,
+}: {
+  active: boolean
+  disabled?: boolean
+  onClick: () => void
+  title?: string
+  children: ReactNode
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      title={title}
+      aria-pressed={active}
+      className={cn(
+        'inline-flex cursor-pointer items-center gap-1.5 rounded-full border px-4 py-1.5 text-xs font-medium transition-all duration-200',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stage-gold focus-visible:ring-offset-2 focus-visible:ring-offset-stage-bg',
+        'disabled:cursor-not-allowed disabled:opacity-50',
+        active
+          ? 'border-stage-gold/70 bg-stage-gold/15 text-stage-gold shadow-[0_0_16px_rgba(247,206,104,0.25)]'
+          : 'border-stage-line bg-stage-panel text-stage-dim hover:border-stage-neon/40 hover:text-stage-text',
+      )}
+    >
+      {children}
+    </button>
+  )
+}
+
 export function RollCallStage() {
   const students = useRollCallStore((s) => s.students)
+  const records = useRollCallStore((s) => s.records)
   const isRolling = useRollCallStore((s) => s.isRolling)
   const currentPicks = useRollCallStore((s) => s.currentPicks)
   const mode = useRollCallStore((s) => s.mode)
@@ -58,7 +104,7 @@ export function RollCallStage() {
   const reduceMotion = useReducedMotion()
   const { tick: playTick, reveal: playReveal } = useSound()
 
-  const [displayNames, setDisplayNames] = useState<string[]>([])
+  const [displayName, setDisplayName] = useState('')
   const [rollProgress, setRollProgress] = useState(0)
   const [rollFrame, setRollFrame] = useState(0)
   const timerRef = useRef<number | null>(null)
@@ -66,9 +112,15 @@ export function RollCallStage() {
   const soundRef = useRef({ playTick, playReveal })
   soundRef.current = { playTick, playReveal }
 
+  /** 今日已点名的学生，球面上对应卡片显示为已处理状态 */
+  const calledIds = useMemo(() => {
+    const date = todayKey()
+    return new Set(records.filter((r) => r.date === date).map((r) => r.studentId))
+  }, [records])
+
   /**
-   * 滚动动画：先把全班名单打乱，再逐组浏览完整一遍。
-   * 这样不是"随机几个人就停"，而是每次点名都有约 5 秒的完整随机浏览过程。
+   * 滚动动画：先把全班名单打乱，再逐人浏览完整一遍。
+   * 期间球面高速自转并随机跳动卡片名字，双重反馈制造悬念。
    */
   useEffect(() => {
     if (!isRolling) {
@@ -86,14 +138,12 @@ export function RollCallStage() {
     }
 
     const showName = (index: number) => {
-      // 中途始终只展示一个名字；达到全班人数后从头循环，避免多人模式挤成一排小字
-      setDisplayNames([rollName(sequence, index)])
+      setDisplayName(rollName(sequence, index))
       setRollFrame((frame) => frame + 1)
       setRollProgress(Math.min((index + 1) / sequence.length, 1))
       soundRef.current.playTick()
     }
 
-    // 第一位立即出现，随后逐人浏览完整名单
     showName(0)
 
     if (reduceMotion) {
@@ -123,225 +173,209 @@ export function RollCallStage() {
     }
   }, [isRolling, reduceMotion, finishRoll])
 
-  /** 揭晓音效：仅在"滚动结束 → 出结果"这一刻播放，标记出勤导致的队列变化不触发 */
+  /** 揭晓瞬间：音效 + 礼花 */
   const prevRolling = useRef(false)
   useEffect(() => {
     if (prevRolling.current && !isRolling && currentPicks.length > 0) {
       currentPicks.forEach((_, i) => {
         window.setTimeout(() => soundRef.current.playReveal(i), i * REVEAL_STAGGER_MS)
       })
+      fireConfetti(0)
     }
     prevRolling.current = isRolling
   }, [isRolling, currentPicks])
 
-  /** 揭晓后同步显示真实结果；清空 picks 时也要同步清掉本地显示缓存 */
-  useEffect(() => {
-    if (!isRolling) {
-      setDisplayNames(currentPicks.length > 0 ? currentPicks.map((s) => s.name) : [])
-    }
-  }, [isRolling, currentPicks])
-
+  const hasResult = !isRolling && currentPicks.length > 0
   const isIdle = !isRolling && currentPicks.length === 0
-  const isMulti = pickCount > 1
   const activeMode = MODES.find((m) => m.key === mode) ?? MODES[0]
 
-  /** 多人结果采用可换行的三等分布局：5 人自动形成上 3 下 2，且下排保持居中 */
-  const resultLayoutClass = isMulti ? 'flex w-full flex-wrap justify-center gap-3 sm:gap-4' : ''
-  const resultItemClass = isMulti
-    ? 'w-[calc((100%-1.5rem)/3)] shrink-0 sm:w-[calc((100%-2rem)/3)]'
-    : ''
-
-  /** 滚动特效统一使用单人字号；多人只在最终结果阶段采用三等分换行布局 */
-  const rollNameSize = 'text-7xl sm:text-8xl md:text-9xl'
-  const resultNameSize = !isMulti
-    ? rollNameSize
-    : pickCount <= 3
-      ? 'text-4xl sm:text-5xl md:text-6xl'
-      : 'text-2xl sm:text-3xl md:text-4xl'
+  const spherePhase: SpherePhase = isRolling ? 'rolling' : hasResult ? 'revealed' : 'idle'
+  const sphereRadius = useResponsiveRadius()
 
   return (
-    <section aria-label="点名舞台" className="rounded-lg border border-border bg-card p-6 sm:p-8">
-      {/* 姓名展示区 */}
-      <div className="flex min-h-[210px] items-center justify-center sm:min-h-[260px]">
-        <AnimatePresence mode="wait">
-          {isIdle ? (
-            <motion.p
-              key="idle"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="text-center text-lg text-muted-foreground sm:text-xl"
-            >
-              点击下方按钮开始点名
-            </motion.p>
-          ) : isRolling ? (
-            <motion.div
-              key="rolling"
-              initial={{ opacity: 0, scale: 0.96 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 1.04 }}
-              transition={{ duration: 0.25, ease: 'easeOut' }}
-              className="w-full"
-            >
-              <div className="relative flex min-h-[210px] items-center justify-center overflow-hidden rounded-xl border border-accent/20 bg-accent/[0.03] px-3 py-6 sm:min-h-[260px] sm:px-6">
-                <div className="pointer-events-none absolute inset-0 flex items-center justify-center" aria-hidden="true">
-                  <motion.div
-                    className="h-56 w-56 rounded-full border border-dashed border-accent/30"
-                    animate={{ rotate: 360, scale: [0.92, 1.04, 0.92], opacity: [0.45, 0.85, 0.45] }}
-                    transition={{ rotate: { duration: 5, repeat: Infinity, ease: 'linear' }, duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
-                  />
-                  <motion.div
-                    className="absolute h-40 w-40 rounded-full border border-accent/15"
-                    animate={{ rotate: -360, scale: [1.05, 0.9, 1.05] }}
-                    transition={{ rotate: { duration: 3.8, repeat: Infinity, ease: 'linear' }, duration: 2.2, repeat: Infinity, ease: 'easeInOut' }}
-                  />
-                </div>
+    <section aria-label="点名舞台" className="flex w-full flex-col items-center">
+      {/* 球体舞台 */}
+      <div className="relative flex h-[340px] w-full items-center justify-center sm:h-[420px] lg:h-[460px]">
+        <NameSphere
+          students={students}
+          phase={spherePhase}
+          highlightIds={currentPicks.map((s) => s.id)}
+          calledIds={calledIds}
+          radius={sphereRadius}
+        />
 
-                <div className="relative z-10 flex w-full items-center justify-center">
-                  <AnimatePresence mode="popLayout" initial={false}>
-                    {displayNames.map((name, i) => (
-                      <motion.span
-                        key={`${name || 'empty'}-${i}-${rollFrame}`}
-                        initial={{ opacity: 0, y: 12, scale: 0.9, filter: 'blur(5px)' }}
-                        animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
-                        exit={{ opacity: 0, y: -12, scale: 1.06, filter: 'blur(4px)' }}
-                        transition={{ duration: 0.16, ease: 'easeOut' }}
-                        className={cn(
-                          'block text-center font-display font-black leading-tight tracking-wide text-accent',
-                          rollNameSize,
-                        )}
-                      >
-                        {name || '—'}
-                      </motion.span>
-                    ))}
-                  </AnimatePresence>
-                </div>
-              </div>
-
-              <div className="mx-auto mt-4 w-full max-w-md" role="status" aria-live="polite">
-                <div className="h-1.5 overflow-hidden rounded-full bg-muted">
-                  <motion.div
-                    className="h-full rounded-full bg-accent"
-                    animate={{ width: `${Math.round(rollProgress * 100)}%` }}
-                    transition={{ duration: 0.18, ease: 'easeOut' }}
-                  />
-                </div>
-                <p className="mt-2 text-center text-xs text-muted-foreground">
-                  正在随机浏览全班名单 · 已浏览 {Math.round(rollProgress * students.length)} / {students.length} 人
-                </p>
-              </div>
-            </motion.div>
-          ) : (
-            <motion.div
-              key={`result-${currentPicks.map((s) => s.id).join('-')}`}
-              initial={{ opacity: 0, scale: 0.92 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 1.04 }}
-              transition={{ duration: 0.3, ease: 'easeOut' }}
-              className={resultLayoutClass}
-            >
-              {currentPicks.map((s, i) => (
-                <motion.div
-                  key={s.id}
-                  initial={{ opacity: 0, scale: 0.85, y: 8 }}
-                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                  transition={{ delay: i * 0.12, duration: 0.3, ease: 'easeOut' }}
-                  className={cn('text-center', resultItemClass)}
-                >
-                  <span
-                    className={cn(
-                      'block font-display font-black leading-tight tracking-wide text-accent',
-                      resultNameSize,
-                    )}
+        {/* 中央层：滚动大字 / 结果卡片 / 待机提示 */}
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center px-4">
+          <AnimatePresence mode="wait">
+            {isRolling ? (
+              <motion.div
+                key="rolling"
+                initial={{ opacity: 0, scale: 0.94 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 1.06 }}
+                transition={{ duration: 0.25, ease: 'easeOut' }}
+                className="flex w-full flex-col items-center"
+              >
+                <AnimatePresence mode="popLayout" initial={false}>
+                  <motion.span
+                    key={`${displayName || 'empty'}-${rollFrame}`}
+                    initial={{ opacity: 0, y: 14, scale: 0.9, filter: 'blur(6px)' }}
+                    animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
+                    exit={{ opacity: 0, y: -14, scale: 1.06, filter: 'blur(5px)' }}
+                    transition={{ duration: 0.16, ease: 'easeOut' }}
+                    className="block text-center font-display text-6xl font-black leading-tight tracking-wide text-gold-gradient name-glow sm:text-7xl md:text-8xl"
                   >
-                    {s.name}
-                  </span>
-                </motion.div>
-              ))}
-            </motion.div>
-          )}
-        </AnimatePresence>
+                    {displayName || '—'}
+                  </motion.span>
+                </AnimatePresence>
+
+                <div className="mt-7 w-full max-w-sm" role="status" aria-live="polite">
+                  <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
+                    <motion.div
+                      className="h-full rounded-full bg-gradient-to-r from-stage-amber to-stage-gold"
+                      animate={{ width: `${Math.round(rollProgress * 100)}%` }}
+                      transition={{ duration: 0.18, ease: 'easeOut' }}
+                    />
+                  </div>
+                  <p className="mt-2 text-center text-xs text-stage-dim">
+                    正在随机浏览全班名单 · 已浏览 {Math.round(rollProgress * students.length)} /{' '}
+                    {students.length} 人
+                  </p>
+                </div>
+              </motion.div>
+            ) : hasResult ? (
+              <motion.div
+                key={`result-${currentPicks.map((s) => s.id).join('-')}`}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="w-full"
+              >
+                <ResultCards students={currentPicks} />
+              </motion.div>
+            ) : (
+              <motion.div
+                key="idle"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="text-center"
+              >
+                <p className="text-lg text-stage-dim sm:text-xl">点击下方按钮开始点名</p>
+                <p className="mt-2 text-xs text-stage-dim/70">
+                  全班 {students.length} 人 · 每次都会随机浏览一遍再揭晓
+                </p>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </div>
 
-      {/* CTA —— 首屏可见 */}
-      <div className="mt-6 flex flex-col items-center gap-5">
-        <Button
-          size="lg"
-          variant="accent"
-          onClick={startRoll}
-          disabled={isRolling || students.length === 0}
-          className="w-full max-w-xs text-base font-semibold"
-        >
-          <Play className="h-5 w-5" aria-hidden="true" />
-          {isRolling ? '正在浏览全班…' : pickCount > 1 ? `抽取 ${pickCount} 人` : '开始点名'}
-        </Button>
+      {/* 结果出勤快捷标记 */}
+      <ResultMarkBar picks={currentPicks} />
+
+      {/* CTA */}
+      <div className="mt-7 flex flex-col items-center gap-5">
+        <div className="relative">
+          {isIdle && (
+            <span
+              className="pointer-events-none absolute inset-0 animate-halo rounded-full bg-stage-gold/40 blur-md"
+              aria-hidden="true"
+            />
+          )}
+          <button
+            type="button"
+            onClick={isRolling ? finishRoll : startRoll}
+            disabled={!isRolling && students.length === 0}
+            className={cn(
+              'relative inline-flex cursor-pointer items-center justify-center gap-2.5 rounded-full px-12 py-4 text-base font-bold tracking-wide transition-all duration-200',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stage-gold focus-visible:ring-offset-2 focus-visible:ring-offset-stage-bg',
+              'disabled:cursor-not-allowed disabled:opacity-50',
+              isRolling
+                ? 'border border-stage-neon/60 bg-stage-neon/15 text-stage-neon shadow-[0_0_30px_rgba(79,216,255,0.3)] hover:bg-stage-neon/25'
+                : 'border border-stage-gold/70 bg-gradient-to-b from-stage-gold to-stage-amber text-[#2A1A00] shadow-[0_0_34px_rgba(247,206,104,0.35)] hover:brightness-110',
+            )}
+          >
+            {isRolling ? (
+              <>
+                <Square className="h-5 w-5" aria-hidden="true" />
+                停止并揭晓
+              </>
+            ) : (
+              <>
+                <Play className="h-5 w-5" aria-hidden="true" />
+                {pickCount > 1 ? `抽取 ${pickCount} 人` : '开始点名'}
+              </>
+            )}
+          </button>
+        </div>
 
         {/* 抽取人数 */}
         <div className="flex flex-wrap items-center justify-center gap-2">
-          <span className="mr-1 text-xs text-muted-foreground">人数</span>
+          <span className="mr-1 text-xs text-stage-dim">人数</span>
           {PICK_COUNT_OPTIONS.map((n) => {
             const meta = COUNT_META[n]
             const Icon = meta.icon
-            const active = n === pickCount
             return (
-              <button
+              <Pill
                 key={n}
-                type="button"
-                onClick={() => setPickCount(n)}
+                active={n === pickCount}
                 disabled={isRolling}
+                onClick={() => setPickCount(n)}
                 title={meta.hint}
-                aria-pressed={active}
-                className={cn(
-                  'inline-flex cursor-pointer items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-medium transition-colors duration-200',
-                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
-                  'disabled:cursor-not-allowed disabled:opacity-50',
-                  active
-                    ? 'border-accent bg-accent/10 text-accent'
-                    : 'border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground',
-                )}
               >
                 <Icon className="h-3.5 w-3.5" aria-hidden="true" />
                 {meta.label}
-              </button>
+              </Pill>
             )
           })}
         </div>
 
         {/* 模式选择 */}
         <div className="flex flex-wrap items-center justify-center gap-2">
-          <span className="mr-1 text-xs text-muted-foreground">模式</span>
+          <span className="mr-1 text-xs text-stage-dim">模式</span>
           {MODES.map((m) => {
             const Icon = m.icon
-            const active = m.key === mode
             return (
-              <button
+              <Pill
                 key={m.key}
-                type="button"
-                onClick={() => setMode(m.key)}
+                active={m.key === mode}
                 disabled={isRolling}
+                onClick={() => setMode(m.key)}
                 title={m.hint}
-                aria-pressed={active}
-                className={cn(
-                  'inline-flex cursor-pointer items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-medium transition-colors duration-200',
-                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
-                  'disabled:cursor-not-allowed disabled:opacity-50',
-                  active
-                    ? 'border-accent bg-accent/10 text-accent'
-                    : 'border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground',
-                )}
               >
                 <Icon className="h-3.5 w-3.5" aria-hidden="true" />
                 {m.label}
-              </button>
+              </Pill>
             )
           })}
         </div>
 
-        <p className="text-center text-xs text-muted-foreground">
-          {isMulti ? `${COUNT_META[pickCount]?.hint ?? ''} · ${activeMode.hint}` : activeMode.hint}
+        <p className="text-center text-xs text-stage-dim">
+          {pickCount > 1
+            ? `${COUNT_META[pickCount]?.hint ?? ''} · ${activeMode.hint}`
+            : activeMode.hint}
         </p>
       </div>
     </section>
   )
+}
+
+/** 球面半径随视口宽度自适应，保证手机上也装得下整颗球 */
+function useResponsiveRadius(): number {
+  const [radius, setRadius] = useState(200)
+
+  useEffect(() => {
+    const calc = () => {
+      const w = window.innerWidth
+      setRadius(w < 400 ? 120 : w < 640 ? 155 : w < 1024 ? 195 : 225)
+    }
+    calc()
+    window.addEventListener('resize', calc)
+    return () => window.removeEventListener('resize', calc)
+  }, [])
+
+  return radius
 }

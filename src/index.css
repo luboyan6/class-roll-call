@@ -75,6 +75,54 @@
 }
 
 @layer utilities {
+  /* 舞台底：径向渐变 + 深空底色，保证任何主题下都是沉浸式深色 */
+  .stage-backdrop {
+    background:
+      radial-gradient(120% 90% at 50% 0%, rgba(79, 216, 255, 0.12) 0%, transparent 55%),
+      radial-gradient(90% 70% at 50% 100%, rgba(167, 139, 250, 0.14) 0%, transparent 60%),
+      linear-gradient(180deg, #070c1a 0%, #04070f 60%, #03060d 100%);
+  }
+
+  /* 舞台玻璃面板：半透明 + 细描边 + 背景模糊 */
+  .stage-glass {
+    background-color: rgba(148, 178, 255, 0.06);
+    border: 1px solid rgba(148, 178, 255, 0.16);
+    backdrop-filter: blur(10px);
+  }
+
+  /* 金色渐变文字，用于舞台主标题与揭晓姓名 */
+  .text-gold-gradient {
+    background-image: linear-gradient(180deg, #fff3d1 0%, #f7ce68 45%, #ff9f1c 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .text-neon-gradient {
+    background-image: linear-gradient(180deg, #dffaff 0%, #4fd8ff 55%, #2b8fff 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  /* 姓名辉光：叠加在渐变文字之上，模拟投影仪上的发光效果 */
+  .name-glow {
+    text-shadow:
+      0 0 18px rgba(247, 206, 104, 0.45),
+      0 0 48px rgba(255, 160, 28, 0.28);
+  }
+
+  .neon-glow {
+    text-shadow:
+      0 0 16px rgba(79, 216, 255, 0.5),
+      0 0 42px rgba(43, 143, 255, 0.3);
+  }
+
+  /* 3D 球面容器：子元素保留三维空间 */
+  .preserve-3d {
+    transform-style: preserve-3d;
+  }
+
   /* 尊重系统的减弱动效偏好 */
   @media (prefers-reduced-motion: reduce) {
     *,
