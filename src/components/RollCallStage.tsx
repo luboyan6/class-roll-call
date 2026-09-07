@@ -156,7 +156,7 @@ export function RollCallStage() {
   return (
     <section aria-label="点名舞台" className="flex w-full flex-col items-center">
       {/* 球体 / 面板舞台 */}
-      <div className="relative flex h-[360px] w-full items-center justify-center sm:h-[440px] lg:h-[480px]">
+      <div className="relative flex h-[320px] w-full items-center justify-center sm:h-[400px] lg:h-[440px]">
         <NameSphere
           students={students}
           status={status}

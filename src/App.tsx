@@ -58,7 +58,7 @@ export default function App() {
         {/* 左侧课堂状态看板，对应 log-lottery 的奖项列表 */}
         <StagePanel />
 
-        <div className="relative z-10 flex flex-1 flex-col items-center justify-center px-4 pb-20 pt-28 sm:pt-32">
+        <div className="relative z-10 flex flex-1 flex-col items-center justify-center px-4 pb-16 pt-16 sm:pt-20 lg:pt-24">
           <RollCallStage />
         </div>
 
