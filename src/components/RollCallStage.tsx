@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { motion } from 'framer-motion'
-import { ListOrdered, Play, Scale, Shuffle, Square, User, Users } from 'lucide-react'
+import { ListOrdered, Play, Scale, Shuffle, User, Users } from 'lucide-react'
 import { useRollCallStore } from '@/store/rollCallStore'
 import { useSound } from '@/hooks/useSound'
 import { PICK_COUNT_OPTIONS } from '@/lib/storage'
@@ -180,11 +180,8 @@ export function RollCallStage() {
         )}
       </div>
 
-      {/* 结果出勤快捷标记 */}
-      {hasResult && <ResultMarkBar picks={currentPicks} />}
-
-      {/* CTA：与 log-lottery 的状态分工一致 */}
-      <div className="mt-4 flex min-h-[4.5rem] flex-col items-center justify-center gap-4">
+      {/* CTA：主要任务是继续抽人 / 返回面板，结果揭晓后必须优先可见、可点击 */}
+      <div className={cn('relative z-30 flex min-h-[4.5rem] flex-col items-center justify-center gap-4', hasResult ? 'mt-3' : 'mt-4')}>
         {status === 'init' && (
           <NeonButton variant="neon" onClick={handleEnter} disabled={!canRoll}>
             进入点名
@@ -199,10 +196,7 @@ export function RollCallStage() {
         )}
 
         {status === 'rolling' && (
-          <NeonButton variant="neon" onClick={handleStop}>
-            <Square className="mr-1.5 inline-block h-3.5 w-3.5" aria-hidden="true" />
-            停止并揭晓
-          </NeonButton>
+          <NeonButton variant="neon" onClick={handleStop}>停止并揭晓</NeonButton>
         )}
 
         {status === 'end' && (
@@ -216,6 +210,13 @@ export function RollCallStage() {
           </div>
         )}
       </div>
+
+      {/* 出勤记录是可选的次要操作，放在主要抽人按钮之后 */}
+      {hasResult && (
+        <div className="relative z-20 mt-5 w-full max-w-3xl border-t border-stage-line/60 pt-4">
+          <ResultMarkBar picks={currentPicks} />
+        </div>
+      )}
 
       {/* 抽取人数 + 模式 */}
       <div className="mt-5 flex flex-col items-center gap-3">

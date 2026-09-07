@@ -92,8 +92,8 @@ export function StudentGrid({ compact = false }: StudentGridProps) {
                   <div
                     key={s.id}
                     className={cn(
-                      // 两行结构：第一行姓名独占满宽，第二行放状态与删除按钮，避免名字被挤压截断
-                      'group flex min-h-11 flex-col items-center justify-center rounded-md border px-2 py-1.5 transition-colors duration-200',
+                      // 姓名始终垂直水平居中；状态标签与删除按钮改为浮层，不再挤占姓名空间
+                      'group relative flex min-h-12 items-center justify-center rounded-md border px-2 py-1.5 transition-colors duration-200',
                       meta
                         ? `${meta.textClass} ${meta.borderClass} ${meta.bgSoftClass}`
                         : 'border-border bg-background text-foreground',
@@ -103,19 +103,21 @@ export function StudentGrid({ compact = false }: StudentGridProps) {
                     <span className="w-full truncate text-center text-xs font-medium leading-tight">
                       {s.name}
                     </span>
-                    <div className="mt-0.5 flex w-full items-center justify-between gap-1">
-                      <span className="text-[10px] opacity-80">{meta ? meta.label : ''}</span>
-                      {!compact && (
-                        <button
-                          type="button"
-                          onClick={() => removeStudent(s.id)}
-                          aria-label={`删除 ${s.name}`}
-                          className="cursor-pointer rounded p-0.5 opacity-0 transition-opacity duration-200 hover:bg-border focus-visible:opacity-100 group-hover:opacity-100"
-                        >
-                          <Trash2 className="h-3 w-3" aria-hidden="true" />
-                        </button>
-                      )}
-                    </div>
+                    {meta && (
+                      <span className="pointer-events-none absolute bottom-0.5 right-1.5 text-[10px] opacity-80">
+                        {meta.label}
+                      </span>
+                    )}
+                    {!compact && (
+                      <button
+                        type="button"
+                        onClick={() => removeStudent(s.id)}
+                        aria-label={`删除 ${s.name}`}
+                        className="absolute right-1 top-1 cursor-pointer rounded p-0.5 opacity-0 transition-opacity duration-200 hover:bg-border focus-visible:opacity-100 group-hover:opacity-100"
+                      >
+                        <Trash2 className="h-3 w-3" aria-hidden="true" />
+                      </button>
+                    )}
                   </div>
                 )
               })}
