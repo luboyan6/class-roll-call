@@ -40,9 +40,13 @@ export function StudentGrid({ compact = false }: StudentGridProps) {
     return [...map.entries()].sort((a, b) => a[0].localeCompare(b[0], 'zh-Hans-CN'))
   }, [students, query])
 
+  /**
+   * 列数刻意压得比之前少：格子太窄时 3~4 个字的名字会被截断。
+   * 姓名独占一行、状态与删除按钮放在第二行，名字就能用满整个格宽。
+   */
   const gridClass = compact
     ? 'grid grid-cols-2 gap-1.5 sm:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3'
-    : 'grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6'
+    : 'grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5'
 
   return (
     <section aria-label="学生名单" className="rounded-lg border border-border bg-card">
@@ -88,16 +92,19 @@ export function StudentGrid({ compact = false }: StudentGridProps) {
                   <div
                     key={s.id}
                     className={cn(
-                      'group relative flex min-h-10 items-center justify-center rounded-md border px-8 py-1.5 text-xs transition-colors duration-200',
+                      // 两行结构：第一行姓名独占满宽，第二行放状态与删除按钮，避免名字被挤压截断
+                      'group flex min-h-11 flex-col items-center justify-center rounded-md border px-2 py-1.5 transition-colors duration-200',
                       meta
                         ? `${meta.textClass} ${meta.borderClass} ${meta.bgSoftClass}`
                         : 'border-border bg-background text-foreground',
                     )}
                     title={meta ? `${s.name} · ${meta.label}` : `${s.name} · 未点名`}
                   >
-                    <span className="max-w-full truncate text-center font-medium">{s.name}</span>
-                    <span className="absolute right-2 flex items-center gap-1">
-                      {meta && <span className="text-[10px] opacity-80">{meta.label}</span>}
+                    <span className="w-full truncate text-center text-xs font-medium leading-tight">
+                      {s.name}
+                    </span>
+                    <div className="mt-0.5 flex w-full items-center justify-between gap-1">
+                      <span className="text-[10px] opacity-80">{meta ? meta.label : ''}</span>
                       {!compact && (
                         <button
                           type="button"
@@ -108,7 +115,7 @@ export function StudentGrid({ compact = false }: StudentGridProps) {
                           <Trash2 className="h-3 w-3" aria-hidden="true" />
                         </button>
                       )}
-                    </span>
+                    </div>
                   </div>
                 )
               })}

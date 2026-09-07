@@ -75,7 +75,8 @@ export function ParticleField() {
       phase: Math.random() * Math.PI * 2,
       freq: 0.008 + Math.random() * 0.022,
       depth: Math.random(),
-      hue: Math.random() < 0.22 ? 45 : 195,
+      // 粉紫为主，少量金色点缀，贴合舞台的粉紫色调
+      hue: Math.random() < 0.55 ? 330 : Math.random() < 0.85 ? 285 : 45,
       rot: Math.random() * Math.PI,
       spin: (Math.random() - 0.5) * 0.008,
       star: Math.random() < 0.7,

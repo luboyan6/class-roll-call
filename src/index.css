@@ -75,12 +75,13 @@
 }
 
 @layer utilities {
-  /* 舞台底：径向渐变 + 深空底色，保证任何主题下都是沉浸式深色 */
+  /* 舞台底：粉色为主调（对齐 log-lottery 的洋红/品红舞台），边角压暗保证名字可读 */
   .stage-backdrop {
     background:
-      radial-gradient(120% 90% at 50% 0%, rgba(79, 216, 255, 0.12) 0%, transparent 55%),
-      radial-gradient(90% 70% at 50% 100%, rgba(167, 139, 250, 0.14) 0%, transparent 60%),
-      linear-gradient(180deg, #070c1a 0%, #04070f 60%, #03060d 100%);
+      radial-gradient(120% 80% at 50% -10%, rgba(255, 121, 198, 0.38) 0%, transparent 58%),
+      radial-gradient(95% 70% at 50% 110%, rgba(232, 28, 255, 0.26) 0%, transparent 62%),
+      radial-gradient(70% 60% at 50% 50%, rgba(255, 158, 205, 0.12) 0%, transparent 70%),
+      linear-gradient(180deg, #56184c 0%, #3b1140 46%, #1d0a27 100%);
   }
 
   /* 舞台玻璃面板：半透明 + 细描边 + 背景模糊 */
@@ -118,9 +119,326 @@
       0 0 42px rgba(43, 143, 255, 0.3);
   }
 
+  /* ---------- 舞台按钮动效关键帧（沿用 log-lottery） ---------- */
+
+  @keyframes gradient_301 {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+
+  @keyframes pulsate-fwd {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.08); }
+    100% { transform: scale(1); }
+  }
+
+  @keyframes pulse_3011 {
+    0% { transform: scale(0.75); box-shadow: 0 0 0 0 rgba(0, 0, 0, 0.7); }
+    70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(0, 0, 0, 0); }
+    100% { transform: scale(0.75); box-shadow: 0 0 0 0 rgba(0, 0, 0, 0); }
+  }
+
+  @keyframes anim_star {
+    from { transform: translateY(0); }
+    to { transform: translateY(-135rem); }
+  }
+
+  @keyframes anim_star_rotate {
+    from { transform: rotate(360deg); }
+    to { transform: rotate(0deg); }
+  }
+
+  @keyframes swing-in-top-fwd {
+    0% { transform: rotateX(-100deg); transform-origin: top; opacity: 0; }
+    100% { transform: rotateX(0deg); transform-origin: top; opacity: 1; }
+  }
+
   /* 3D 球面容器：子元素保留三维空间 */
   .preserve-3d {
     transform-style: preserve-3d;
+  }
+
+  /* ---------- 舞台卡片：面板态 ↔ 球态共用，对齐参考站的双行排版 ---------- */
+
+  .stage-card {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 76px;
+    height: 52px;
+    padding: 3px 5px;
+    border-radius: 5px;
+    color: #fff;
+    font-weight: 700;
+    text-align: center;
+    user-select: none;
+    box-shadow: 0 0 6px rgba(255, 121, 198, 0.12);
+    transition: background 0.3s, border-color 0.3s, box-shadow 0.3s;
+  }
+
+  .stage-card__code {
+    font-size: 8px;
+    font-weight: 400;
+    letter-spacing: 0.4px;
+    color: rgba(255, 255, 255, 0.6);
+    line-height: 1.1;
+  }
+
+  .stage-card__name {
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.2;
+    margin-top: 1px;
+    text-shadow: 0 0 5px rgba(255, 121, 198, 0.3);
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* 五种主色：让面板不至于一片粉，呼应参考站图片中的色彩变化 */
+  .stage-card--pink {
+    background: linear-gradient(180deg, rgba(255, 121, 198, 0.22) 0%, rgba(232, 28, 255, 0.1) 100%);
+    border: 1px solid rgba(255, 143, 203, 0.35);
+  }
+
+  .stage-card--rose {
+    background: linear-gradient(180deg, rgba(244, 114, 182, 0.22) 0%, rgba(190, 24, 93, 0.1) 100%);
+    border: 1px solid rgba(244, 114, 182, 0.35);
+  }
+
+  .stage-card--blue {
+    background: linear-gradient(180deg, rgba(96, 165, 250, 0.22) 0%, rgba(37, 99, 235, 0.1) 100%);
+    border: 1px solid rgba(147, 197, 253, 0.35);
+  }
+
+  .stage-card--magenta {
+    background: linear-gradient(180deg, rgba(217, 70, 239, 0.24) 0%, rgba(112, 26, 117, 0.12) 100%);
+    border: 1px solid rgba(232, 121, 249, 0.4);
+  }
+
+  .stage-card--violet {
+    background: linear-gradient(180deg, rgba(167, 139, 250, 0.24) 0%, rgba(91, 33, 182, 0.12) 100%);
+    border: 1px solid rgba(196, 181, 253, 0.4);
+  }
+
+  /* 今日已点过的学生：弱化显示，让老师一眼看到"还剩谁" */
+  .stage-card--called {
+    opacity: 0.45;
+    border-color: rgba(74, 222, 128, 0.35) !important;
+  }
+
+  /* 中签：金色描边 + 强光晕 */
+  .stage-card--lucky {
+    border-color: rgba(247, 206, 104, 0.85) !important;
+    background: linear-gradient(180deg, rgba(247, 206, 104, 0.32) 0%, rgba(255, 160, 28, 0.18) 100%) !important;
+    box-shadow: 0 0 26px rgba(247, 206, 104, 0.55) !important;
+    color: #fff8e6;
+  }
+
+  .stage-card--lucky .stage-card__name {
+    text-shadow: 0 0 10px rgba(247, 206, 104, 0.6);
+  }
+
+  /* ---------- 舞台按钮：沿用 log-lottery 的 btn-stars / btn-neon ---------- */
+
+  /* 主按钮：渐变流光描边 + 内部星空 + 底部光晕 + 呼吸缩放 */
+  .btn-stars {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 14rem;
+    height: 3.25rem;
+    overflow: hidden;
+    border-radius: 5rem;
+    cursor: pointer;
+    background-size: 300% 300%;
+    border: double 4px transparent;
+    background-image: linear-gradient(#0b1220, #0b1220),
+      linear-gradient(137.48deg, #ffdb3b 10%, #fe53bb 45%, #8f51ea 67%, #0044ff 87%);
+    background-origin: border-box;
+    background-clip: content-box, border-box;
+    transition: transform 0.5s;
+    animation:
+      gradient_301 5s ease infinite,
+      pulsate-fwd 1.2s ease-in-out infinite both;
+  }
+
+  .btn-stars:hover {
+    transform: scale(1.06);
+  }
+
+  .btn-stars:disabled,
+  .btn-neon:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+    animation-play-state: paused;
+  }
+
+  .btn-stars:disabled:hover {
+    transform: none;
+  }
+
+  .btn-stars:active {
+    animation: none;
+    border-color: #fe53bb;
+  }
+
+  .btn-stars > strong {
+    position: relative;
+    z-index: 2;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 4px;
+    color: #fff;
+    text-shadow: 0 0 4px #fff;
+  }
+
+  /* 取消/返回按钮：与 log-lottery 的 btn-cancel 一致 —— 只保留流光描边，不做呼吸缩放 */
+  .btn-stars--cancel {
+    width: 11rem;
+    animation: gradient_301 5s ease infinite;
+  }
+
+  .btn-stars--cancel > strong {
+    font-size: 14px;
+    letter-spacing: 2px;
+  }
+
+  @media (max-width: 430px) {
+    .btn-stars {
+      width: 11.5rem;
+      height: 2.9rem;
+    }
+
+    .btn-stars--cancel {
+      width: 9.5rem;
+    }
+  }
+
+  /* 内部星空层：两层星点，一层缓慢旋转、一层向上滚动 */
+  .btn-stars__stars {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    overflow: hidden;
+    border-radius: 5rem;
+    transition: background-color 0.5s;
+  }
+
+  .btn-stars:hover .btn-stars__stars {
+    background-color: #0b1220;
+  }
+
+  .btn-stars__stars::before,
+  .btn-stars__stars::after {
+    content: '';
+    position: absolute;
+    background-image: radial-gradient(#ffffff 1px, transparent 1%);
+    background-size: 50px 50px;
+  }
+
+  .btn-stars__stars::before {
+    top: 0;
+    left: -50%;
+    width: 170%;
+    height: 500%;
+    opacity: 0.5;
+    animation: anim_star 60s linear infinite;
+  }
+
+  .btn-stars__stars::after {
+    top: -10rem;
+    left: -100rem;
+    width: 200rem;
+    height: 200rem;
+    animation: anim_star_rotate 90s linear infinite;
+  }
+
+  /* 底部光晕 */
+  .btn-stars__glow {
+    position: absolute;
+    z-index: 0;
+    display: flex;
+    width: 12rem;
+  }
+
+  .btn-stars__glow > .circle {
+    width: 100%;
+    height: 30px;
+    filter: blur(2rem);
+    animation: pulse_3011 4s infinite;
+  }
+
+  .btn-stars__glow > .circle:nth-of-type(1) {
+    background: rgba(254, 83, 186, 0.64);
+  }
+
+  .btn-stars__glow > .circle:nth-of-type(2) {
+    background: rgba(142, 81, 234, 0.7);
+  }
+
+  /* 次按钮：霓虹辉光，用于"停止并揭晓"这类需要紧急感的操作 */
+  .btn-neon {
+    --glow-color: rgb(217, 176, 255);
+    --glow-spread-color: rgba(191, 123, 255, 0.78);
+    --btn-color: rgb(100, 61, 136);
+    position: relative;
+    cursor: pointer;
+    border: 0.25em solid var(--glow-color);
+    padding: 0.9em 2.6em;
+    color: var(--glow-color);
+    font-size: 15px;
+    font-weight: 700;
+    background-color: var(--btn-color);
+    border-radius: 1em;
+    outline: none;
+    box-shadow:
+      0 0 1em 0.25em var(--glow-color),
+      0 0 4em 1em var(--glow-spread-color),
+      inset 0 0 0.75em 0.25em var(--glow-color);
+    text-shadow: 0 0 0.5em var(--glow-color);
+    transition: all 0.3s;
+    animation:
+      pulsate-fwd 0.9s ease-in-out infinite both,
+      swing-in-top-fwd 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+  }
+
+  .btn-neon::after {
+    pointer-events: none;
+    content: '';
+    position: absolute;
+    top: 120%;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: var(--glow-spread-color);
+    filter: blur(2em);
+    opacity: 0.7;
+    transform: perspective(1.5em) rotateX(35deg) scale(1, 0.6);
+  }
+
+  .btn-neon:hover {
+    color: var(--btn-color);
+    background-color: var(--glow-color);
+    box-shadow:
+      0 0 1em 0.25em var(--glow-color),
+      0 0 4em 2em var(--glow-spread-color),
+      inset 0 0 0.75em 0.25em var(--glow-color);
+  }
+
+  .btn-neon:active {
+    box-shadow:
+      0 0 0.6em 0.25em var(--glow-color),
+      0 0 2.5em 2em var(--glow-spread-color),
+      inset 0 0 0.5em 0.25em var(--glow-color);
   }
 
   /* 尊重系统的减弱动效偏好 */

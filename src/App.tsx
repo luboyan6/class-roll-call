@@ -3,6 +3,7 @@ import { ChevronDown } from 'lucide-react'
 import { NoticeBar } from './components/NoticeBar'
 import { ParticleField } from './components/ParticleField'
 import { RollCallStage } from './components/RollCallStage'
+import { StagePanel } from './components/StagePanel'
 import { StageTitle } from './components/StageTitle'
 import { StageToolbar } from './components/StageToolbar'
 import { TodayOverview } from './components/TodayOverview'
@@ -54,6 +55,8 @@ export default function App() {
       <section className="stage-backdrop relative flex min-h-screen flex-col overflow-hidden">
         <ParticleField />
         <StageTitle />
+        {/* 左侧课堂状态看板，对应 log-lottery 的奖项列表 */}
+        <StagePanel />
 
         <div className="relative z-10 flex flex-1 flex-col items-center justify-center px-4 pb-20 pt-28 sm:pt-32">
           <RollCallStage />
