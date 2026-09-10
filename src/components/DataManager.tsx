@@ -28,6 +28,12 @@ export function DataManager() {
   const skipCalledToday = useRollCallStore((s) => s.skipCalledToday)
   const setSkipCalledToday = useRollCallStore((s) => s.setSkipCalledToday)
   const settings = useRollCallStore((s) => s.settings)
+  const bgmEnabled = useRollCallStore((s) => s.settings.bgmEnabled)
+  const bgmVolume = useRollCallStore((s) => s.settings.bgmVolume)
+  const soundEnabled = useRollCallStore((s) => s.settings.soundEnabled)
+  const toggleBgm = useRollCallStore((s) => s.toggleBgm)
+  const setBgmVolume = useRollCallStore((s) => s.setBgmVolume)
+  const toggleSound = useRollCallStore((s) => s.toggleSound)
   const addStudent = useRollCallStore((s) => s.addStudent)
   const resetToday = useRollCallStore((s) => s.resetToday)
   const resetAll = useRollCallStore((s) => s.resetAll)
@@ -108,6 +114,53 @@ export function DataManager() {
           </label>
           <p className="mt-2 text-xs text-muted-foreground">
             关闭后同一人可在一天内被重复点到
+          </p>
+        </div>
+
+        {/* 声音 */}
+        <div>
+          <h3 className="mb-2 text-xs text-muted-foreground">声音</h3>
+
+          <label className="flex cursor-pointer items-center gap-2.5 text-sm">
+            <input
+              type="checkbox"
+              checked={bgmEnabled}
+              onChange={() => toggleBgm()}
+              className="h-4 w-4 cursor-pointer rounded border-border text-accent accent-[hsl(var(--accent))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            />
+            <span>背景音乐</span>
+          </label>
+
+          {bgmEnabled && (
+            <div className="mt-2.5 flex items-center gap-2.5">
+              <input
+                type="range"
+                min={0}
+                max={1}
+                step={0.05}
+                value={bgmVolume}
+                onChange={(e) => setBgmVolume(Number(e.target.value))}
+                aria-label="背景音乐音量"
+                className="h-1.5 w-full max-w-[10rem] cursor-pointer accent-[hsl(var(--accent))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              />
+              <span className="tabular w-9 shrink-0 text-xs text-muted-foreground">
+                {Math.round(bgmVolume * 100)}%
+              </span>
+            </div>
+          )}
+
+          <label className="mt-2.5 flex cursor-pointer items-center gap-2.5 text-sm">
+            <input
+              type="checkbox"
+              checked={soundEnabled}
+              onChange={() => toggleSound()}
+              className="h-4 w-4 cursor-pointer rounded border-border text-accent accent-[hsl(var(--accent))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            />
+            <span>点名音效</span>
+          </label>
+
+          <p className="mt-2 text-xs text-muted-foreground">
+            点名滚动时背景音乐会自动压低，让位给点名音效
           </p>
         </div>
 

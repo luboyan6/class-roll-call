@@ -22,11 +22,18 @@ const LEGACY_CLASS_NAME = '2501'
 /** 可选的单次抽取人数 */
 export const PICK_COUNT_OPTIONS = [1, 3, 5] as const
 
+/** 背景音乐文件（放在 public 下，构建时原样拷到产物根目录） */
+export const BGM_SRC = 'audio/bgm.mp3'
+/** 背景音乐默认音量：课堂环境当底噪用，不能盖过人声 */
+export const DEFAULT_BGM_VOLUME = 0.35
+
 /** 默认设置 */
 export function createDefaultSettings(): Settings {
   return {
     soundEnabled: false,
     pickCount: 1,
+    bgmEnabled: true,
+    bgmVolume: DEFAULT_BGM_VOLUME,
   }
 }
 
@@ -36,11 +43,17 @@ function normalizeSettings(raw: Partial<Settings> | undefined | null): Settings 
   if (!raw || typeof raw !== 'object') return fallback
 
   const pickCount = Number(raw.pickCount)
+  const bgmVolume = Number(raw.bgmVolume)
   return {
     soundEnabled: typeof raw.soundEnabled === 'boolean' ? raw.soundEnabled : fallback.soundEnabled,
     pickCount: PICK_COUNT_OPTIONS.includes(pickCount as (typeof PICK_COUNT_OPTIONS)[number])
       ? pickCount
       : fallback.pickCount,
+    bgmEnabled: typeof raw.bgmEnabled === 'boolean' ? raw.bgmEnabled : fallback.bgmEnabled,
+    bgmVolume:
+      typeof raw.bgmVolume === 'number' && bgmVolume >= 0 && bgmVolume <= 1
+        ? bgmVolume
+        : fallback.bgmVolume,
   }
 }
 

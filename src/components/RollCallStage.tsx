@@ -3,6 +3,7 @@ import { motion } from 'framer-motion'
 import { ListOrdered, Play, Scale, Shuffle, User, Users } from 'lucide-react'
 import { useRollCallStore } from '@/store/rollCallStore'
 import { useSound } from '@/hooks/useSound'
+import { duckBgm, unduckBgm } from '@/hooks/useBgm'
 import { PICK_COUNT_OPTIONS } from '@/lib/storage'
 import { fireConfetti } from '@/lib/confetti'
 import type { PickMode } from '@/types'
@@ -112,6 +113,15 @@ export function RollCallStage() {
     if (status !== 'rolling') return
     const id = window.setInterval(() => soundRef.current.playTick(), ROLL_TICK_MS)
     return () => window.clearInterval(id)
+  }, [status])
+
+  /**
+   * 背景音乐闪避：滚动阶段把音乐压低，让节奏音听得清；
+   * 一停止（进入揭晓或返回面板）就抬回来。
+   */
+  useEffect(() => {
+    if (status === 'rolling') duckBgm()
+    else unduckBgm()
   }, [status])
 
   /** 揭晓瞬间：音效 + 礼花 */

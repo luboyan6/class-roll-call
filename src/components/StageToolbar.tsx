@@ -1,9 +1,19 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { Download, Maximize, Minimize, Moon, Sun, Volume2, VolumeX } from 'lucide-react'
+import {
+  Download,
+  Maximize,
+  Minimize,
+  Moon,
+  Music,
+  Sun,
+  Volume2,
+  VolumeX,
+} from 'lucide-react'
 import { useRollCallStore } from '@/store/rollCallStore'
 import { exportRecordsToCSV } from '@/lib/storage'
 import { useTheme } from '@/hooks/useTheme'
 import { useSound } from '@/hooks/useSound'
+import { useBgm } from '@/hooks/useBgm'
 import { cn } from '@/lib/utils'
 
 /**
@@ -45,6 +55,7 @@ export function StageToolbar() {
   const records = useRollCallStore((s) => s.records)
   const { theme, toggle: toggleTheme } = useTheme()
   const { enabled: soundEnabled, toggle: toggleSound } = useSound()
+  const { enabled: bgmEnabled, toggle: toggleBgm } = useBgm()
   const [isFullscreen, setIsFullscreen] = useState(false)
 
   useEffect(() => {
@@ -75,6 +86,26 @@ export function StageToolbar() {
         ) : (
           <VolumeX className="h-4 w-4" aria-hidden="true" />
         )}
+      </ToolButton>
+
+      {/* 背景音乐：关闭时用一条斜线划掉，和「点名音效」的喇叭图标区分开 */}
+      <ToolButton
+        onClick={toggleBgm}
+        label={bgmEnabled ? '关闭背景音乐' : '开启背景音乐'}
+        active={bgmEnabled}
+      >
+        <span className="relative flex items-center justify-center">
+          <Music
+            className={cn('h-4 w-4', !bgmEnabled && 'opacity-60')}
+            aria-hidden="true"
+          />
+          {!bgmEnabled && (
+            <span
+              className="absolute h-[1.5px] w-5 rotate-45 rounded-full bg-current"
+              aria-hidden="true"
+            />
+          )}
+        </span>
       </ToolButton>
 
       <ToolButton

@@ -45,6 +45,10 @@ interface RollCallState {
   setSkipCalledToday: (v: boolean) => void
   setPickCount: (n: number) => void
   toggleSound: () => void
+  /** 背景音乐开关 */
+  toggleBgm: () => void
+  /** 背景音乐音量 0~1 */
+  setBgmVolume: (v: number) => void
   startRoll: () => void
   finishRoll: () => void
   markStatus: (studentId: string, status: AttendanceStatus) => void
@@ -167,6 +171,23 @@ export const useRollCallStore = create<RollCallState>((set, get) => ({
   toggleSound: () =>
     set((s) => {
       const settings = { ...s.settings, soundEnabled: !s.settings.soundEnabled }
+      saveState({ ...persistedOf(s), settings })
+      return { settings }
+    }),
+
+  toggleBgm: () =>
+    set((s) => {
+      const settings = { ...s.settings, bgmEnabled: !s.settings.bgmEnabled }
+      saveState({ ...persistedOf(s), settings })
+      return { settings }
+    }),
+
+  setBgmVolume: (v) =>
+    set((s) => {
+      const settings = {
+        ...s.settings,
+        bgmVolume: Math.max(0, Math.min(1, Number.isFinite(v) ? v : s.settings.bgmVolume)),
+      }
       saveState({ ...persistedOf(s), settings })
       return { settings }
     }),

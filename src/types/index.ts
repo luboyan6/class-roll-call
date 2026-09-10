@@ -46,6 +46,10 @@ export interface Settings {
   soundEnabled: boolean
   /** 单次抽取人数：1 个人点名，或 3/5 人小组提问 */
   pickCount: number
+  /** 背景音乐开关 */
+  bgmEnabled: boolean
+  /** 背景音乐音量 0~1 */
+  bgmVolume: number
 }
 
 /** 持久化数据结构（v3 起按班级组织） */
