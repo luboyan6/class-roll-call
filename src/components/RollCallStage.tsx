@@ -2,8 +2,9 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { motion } from 'framer-motion'
 import { ListOrdered, Play, Scale, Shuffle, User, Users } from 'lucide-react'
 import { useRollCallStore } from '@/store/rollCallStore'
-import { useSound } from '@/hooks/useSound'
-import { duckBgm, unduckBgm } from '@/hooks/useBgm'
+// 旧的 Web Audio 合成音效已停用，仅保留 BGM 播放
+// import { useSound } from '@/hooks/useSound'
+import { playBgm, stopBgm } from '@/hooks/useBgm'
 import { PICK_COUNT_OPTIONS } from '@/lib/storage'
 import { fireConfetti } from '@/lib/confetti'
 import type { PickMode } from '@/types'
@@ -26,10 +27,6 @@ import { ResultMarkBar } from './ResultMarkBar'
  *
  * 抽取始终只走原始名单，球面上重复的人名只是特效填充。
  */
-
-const REVEAL_STAGGER_MS = 130
-/** 滚动期节奏音的间隔 */
-const ROLL_TICK_MS = 160
 
 const MODES: { key: PickMode; label: string; icon: typeof Shuffle; hint: string }[] = [
   { key: 'weighted', label: '加权随机', icon: Scale, hint: '被点少的人概率更高，长期公平' },
@@ -91,13 +88,8 @@ export function RollCallStage() {
   const finishRoll = useRollCallStore((s) => s.finishRoll)
   const clearPicks = useRollCallStore((s) => s.clearPicks)
 
-  const { tick: playTick, reveal: playReveal } = useSound()
-
   /** init 面板态 → ready 球态 → rolling 抽取中 → end 揭晓 */
   const [status, setStatus] = useState<StageStatus>('init')
-  /** 用 ref 持有最新音效函数，避免回调变化导致定时器被反复重建 */
-  const soundRef = useRef({ playTick, playReveal })
-  soundRef.current = { playTick, playReveal }
 
   /** 今日已点名的学生，卡片显示为已处理状态 */
   const calledIds = useMemo(() => {
@@ -105,32 +97,10 @@ export function RollCallStage() {
     return new Set(records.filter((r) => r.date === date).map((r) => r.studentId))
   }, [records])
 
-  /**
-   * 滚动期节奏音：球体高速旋转时持续发出短促的滴答声，
-   * 像老虎机滚轮一样累积期待感（音效开关关闭时 useSound 内部会直接忽略）。
-   */
-  useEffect(() => {
-    if (status !== 'rolling') return
-    const id = window.setInterval(() => soundRef.current.playTick(), ROLL_TICK_MS)
-    return () => window.clearInterval(id)
-  }, [status])
-
-  /**
-   * 背景音乐闪避：滚动阶段把音乐压低，让节奏音听得清；
-   * 一停止（进入揭晓或返回面板）就抬回来。
-   */
-  useEffect(() => {
-    if (status === 'rolling') duckBgm()
-    else unduckBgm()
-  }, [status])
-
-  /** 揭晓瞬间：音效 + 礼花 */
+  /** 揭晓瞬间：礼花 */
   const prevRolling = useRef(false)
   useEffect(() => {
     if (prevRolling.current && !isRolling && currentPicks.length > 0) {
-      currentPicks.forEach((_, i) => {
-        window.setTimeout(() => soundRef.current.playReveal(i), i * REVEAL_STAGGER_MS)
-      })
       fireConfetti(0)
     }
     prevRolling.current = isRolling
@@ -142,7 +112,6 @@ export function RollCallStage() {
 
   const handleEnter = () => {
     if (!canRoll) return
-    soundRef.current.playTick()
     setStatus('ready')
   }
 
@@ -151,16 +120,22 @@ export function RollCallStage() {
     clearPicks()
     startRoll()
     setStatus('rolling')
+    // 开始点名时播放 BGM
+    playBgm()
   }
 
   const handleStop = () => {
     finishRoll()
     setStatus('end')
+    // 揭晓后停止 BGM
+    stopBgm()
   }
 
   const handleQuit = () => {
     clearPicks()
     setStatus('init')
+    // 返回面板也停止 BGM
+    stopBgm()
   }
 
   return (

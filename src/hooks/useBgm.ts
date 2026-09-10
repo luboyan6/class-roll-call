@@ -14,15 +14,12 @@ import { BGM_SRC } from '@/lib/storage'
  */
 
 const FADE_MS = 700
-/** 点名滚动时把音乐压到这个比例，让位给点名音效；揭晓后自动抬回来 */
-const DUCK_RATIO = 0.28
 
 let audio: HTMLAudioElement | null = null
 let fadeTimer: number | null = null
 let duckTimer: number | null = null
-/** 目标音量（0~1），duck 期间实际音量为 target * DUCK_RATIO */
+/** 目标音量（0~1） */
 let targetVolume = 0
-let ducking = false
 let unlockArmed = false
 
 function clearFade() {
@@ -55,7 +52,7 @@ function fadeTo(el: HTMLAudioElement, from: number, to: number, ms: number) {
 }
 
 function applyVolume(el: HTMLAudioElement, immediate = false) {
-  const to = ducking ? targetVolume * DUCK_RATIO : targetVolume
+  const to = targetVolume
   if (immediate) {
     clearFade()
     el.volume = to
@@ -72,7 +69,10 @@ function playWithUnlock(el: HTMLAudioElement) {
   const attempt = () => {
     const p = el.play()
     if (p && typeof p.catch === 'function') {
-      p.catch(() => armUnlock(el))
+      p.catch(() => {
+        // 自动播放被拒 → 挂一次性手势解锁
+        armUnlock(el)
+      })
     }
   }
   attempt()
@@ -112,30 +112,28 @@ function getAudio(): HTMLAudioElement {
 }
 
 /**
- * 开始压低背景音乐（点名滚动阶段调用），让位给点名音效。
+ * 开始播放背景音乐（点名开始时调用）。
  * 供舞台直接调用，不必经过 hook。
  */
-export function duckBgm() {
-  const el = audio
-  if (!el || el.paused || ducking) return
-  ducking = true
-  if (duckTimer !== null) {
-    window.clearTimeout(duckTimer)
-    duckTimer = null
-  }
-  applyVolume(el)
+export function playBgm() {
+  const el = getAudio()
+  targetVolume = useRollCallStore.getState().settings.bgmVolume
+  applyVolume(el, el.paused)
+  playWithUnlock(el)
 }
 
-/** 恢复背景音乐音量（停止滚动 / 揭晓时调用） */
-export function unduckBgm() {
+/** 停止背景音乐（揭晓或返回面板时调用） */
+export function stopBgm() {
   const el = audio
-  if (!el || !ducking) return
-  ducking = false
-  if (duckTimer !== null) {
-    window.clearTimeout(duckTimer)
-    duckTimer = null
-  }
-  applyVolume(el)
+  if (!el) return
+  // 淡出再暂停，避免硬切爆音
+  fadeTo(el, el.volume, 0, 400)
+  const t = window.setTimeout(() => {
+    el.pause()
+  }, 420)
+  // 清理旧定时器，避免重叠
+  if (duckTimer !== null) window.clearTimeout(duckTimer)
+  duckTimer = t
 }
 
 export function useBgm() {
