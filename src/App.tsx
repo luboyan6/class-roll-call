@@ -1,6 +1,8 @@
 import { lazy, Suspense } from 'react'
 import { ChevronDown } from 'lucide-react'
 import { NoticeBar } from './components/NoticeBar'
+import { ClassManager } from './components/ClassManager'
+import { ClassSwitcher } from './components/ClassSwitcher'
 import { ParticleField } from './components/ParticleField'
 import { RollCallStage } from './components/RollCallStage'
 import { StagePanel } from './components/StagePanel'
@@ -59,6 +61,7 @@ export default function App() {
         <StagePanel />
 
         <div className="relative z-10 flex flex-1 flex-col items-center justify-center px-4 pb-16 pt-16 sm:pt-20 lg:pt-24">
+          <ClassSwitcher />
           <RollCallStage />
         </div>
 
@@ -82,6 +85,7 @@ export default function App() {
           <StatsCharts />
         </Suspense>
 
+        <ClassManager />
         <DataManager />
       </section>
 

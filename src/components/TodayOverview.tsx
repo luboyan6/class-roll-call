@@ -1,10 +1,11 @@
 import { useMemo } from 'react'
-import { useRollCallStore, selectTodayRecords } from '@/store/rollCallStore'
+import { useRollCallStore, selectActiveClass, selectTodayRecords } from '@/store/rollCallStore'
 import { STATUS_META, STATUS_ORDER, cn, todayKey } from '@/lib/utils'
 import type { AttendanceStatus } from '@/types'
 
 export function TodayOverview() {
   const students = useRollCallStore((s) => s.students)
+  const activeClass = useRollCallStore(selectActiveClass)
   const todayRecords = useRollCallStore(selectTodayRecords)
 
   const stats = useMemo(() => {
@@ -29,9 +30,11 @@ export function TodayOverview() {
 
   return (
     <section aria-label="今日概览" className="rounded-lg border border-border bg-card p-5">
-      <div className="mb-4 flex items-baseline justify-between">
-        <h2 className="text-sm font-semibold">今日概览</h2>
-        <span className="text-xs text-muted-foreground">{todayKey()}</span>
+      <div className="mb-4 flex items-baseline justify-between gap-2">
+        <h2 className="truncate text-sm font-semibold">
+          今日概览{activeClass ? ` · ${activeClass.name} 班` : ''}
+        </h2>
+        <span className="shrink-0 text-xs text-muted-foreground">{todayKey()}</span>
       </div>
 
       <div className="grid grid-cols-3 gap-3">

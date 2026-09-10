@@ -1,7 +1,7 @@
-import type { Student } from '@/types'
+import type { ClassRoom, Student } from '@/types'
 
-/** 班级原始名单（32 人） */
-const RAW_NAMES: string[] = [
+/** 2501 班原始名单（32 人） */
+const RAW_2501: string[] = [
   '柏唐泽宇',
   '陈黎涛',
   '邓凯',
@@ -36,13 +36,64 @@ const RAW_NAMES: string[] = [
   '伍盈',
 ]
 
-/** 生成初始学生列表（含稳定 id 与学号） */
-export function createSeedStudents(): Student[] {
-  return RAW_NAMES.map((name, index) => ({
-    id: `s${String(index + 1).padStart(2, '0')}`,
-    name,
-    no: index + 1,
+/** 2503 班原始名单（36 人） */
+const RAW_2503: string[] = [
+  '张茜',
+  '唐琪萌',
+  '李俊杰',
+  '邓诗雨',
+  '肖欣琴',
+  '陆琦',
+  '雷汉卿',
+  '彭仁帅',
+  '谭沛晨',
+  '王宜豪',
+  '唐明勋',
+  '唐鑫',
+  '唐嘉泽',
+  '王艺桦',
+  '邓晨睿',
+  '于嘉辉',
+  '唐峻熙',
+  '唐紫晴',
+  '成俊杰',
+  '吴宇翔',
+  '唐武',
+  '唐炜晨',
+  '任军杰',
+  '方文龙',
+  '唐程理',
+  '袁金哲',
+  '唐雪锋',
+  '邓芳婷',
+  '唐熙雯',
+  '李嘉佑',
+  '王恺',
+  '李亚碟',
+  '刘明慧',
+  '王倩',
+  '李梦璐',
+  '李永嘉',
+]
+
+/**
+ * 生成班级对象。
+ * id 固定成 class-2501 这种形式：老用户的记录里存的是旧学生 id，
+ * 班级 id 稳定才能保证迁移后历史记录还能对上号。
+ */
+function makeClass(name: string, raw: string[]): ClassRoom {
+  const id = `class-${name}`
+  const students: Student[] = raw.map((n, i) => ({
+    id: `${id}-s${String(i + 1).padStart(2, '0')}`,
+    name: n,
+    no: i + 1,
   }))
+  return { id, name, students, cursor: 0 }
 }
 
-export { RAW_NAMES }
+/** 初始班级列表：2501 与 2503 */
+export function createSeedClasses(): ClassRoom[] {
+  return [makeClass('2501', RAW_2501), makeClass('2503', RAW_2503)]
+}
+
+export { RAW_2501, RAW_2503 }

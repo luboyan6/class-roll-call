@@ -12,9 +12,25 @@ export interface Student {
   no: number
 }
 
+/**
+ * 班级 —— 名单、点名记录、顺序游标都按班级隔离。
+ * 老师可能同时带几个班，切换班级后看到的应该是另一个班的人和另一个班的记录。
+ */
+export interface ClassRoom {
+  id: string
+  name: string
+  students: Student[]
+  /** 顺序轮询模式的游标，每个班各自推进 */
+  cursor: number
+}
+
 /** 单条点名记录 */
 export interface CallRecord {
   id: string
+  /** 所属班级（记录按班级隔离） */
+  classId: string
+  /** 班级名快照：导出 CSV 时即便班级被改名/删除也能看懂历史 */
+  className: string
   studentId: string
   studentName: string
   status: AttendanceStatus
@@ -32,14 +48,27 @@ export interface Settings {
   pickCount: number
 }
 
-/** 持久化数据结构 */
+/** 持久化数据结构（v3 起按班级组织） */
 export interface PersistedState {
   version: number
-  students: Student[]
+  classes: ClassRoom[]
+  /** 当前选中的班级 */
+  activeClassId: string
+  /** 全部班级的点名记录，靠 classId 归属 */
   records: CallRecord[]
-  /** 顺序模式的游标 */
-  sequentialCursor: number
   settings: Settings
+}
+
+/**
+ * 旧版（v1/v2）落盘结构 —— 仅用于迁移。
+ * 那时只有一个班，名单直接挂在根节点上。
+ */
+export interface LegacyPersistedState {
+  version?: number
+  students?: Student[]
+  records?: Omit<CallRecord, 'classId' | 'className'>[]
+  sequentialCursor?: number
+  settings?: Settings
 }
 
 /** 状态元信息（展示用） */

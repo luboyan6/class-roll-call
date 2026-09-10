@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Search, Trash2 } from 'lucide-react'
-import { useRollCallStore } from '@/store/rollCallStore'
+import { useRollCallStore, selectActiveClass } from '@/store/rollCallStore'
 import type { AttendanceStatus, Student } from '@/types'
 import { STATUS_META, cn, surnameOf, todayKey } from '@/lib/utils'
 
@@ -12,6 +12,7 @@ interface StudentGridProps {
 export function StudentGrid({ compact = false }: StudentGridProps) {
   const students = useRollCallStore((s) => s.students)
   const records = useRollCallStore((s) => s.records)
+  const activeClass = useRollCallStore(selectActiveClass)
   const removeStudent = useRollCallStore((s) => s.removeStudent)
   const [query, setQuery] = useState('')
 
@@ -51,8 +52,10 @@ export function StudentGrid({ compact = false }: StudentGridProps) {
   return (
     <section aria-label="学生名单" className="rounded-lg border border-border bg-card">
       <div className="flex items-center justify-between gap-3 border-b border-border p-4">
-        <div>
-          <h2 className="text-sm font-semibold">学生名单</h2>
+        <div className="min-w-0">
+          <h2 className="truncate text-sm font-semibold">
+            学生名单{activeClass ? ` · ${activeClass.name} 班` : ''}
+          </h2>
           <p className="text-xs text-muted-foreground">共 {students.length} 人</p>
         </div>
         {!compact && (

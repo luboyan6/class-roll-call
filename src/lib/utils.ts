@@ -26,8 +26,10 @@ export function formatWeekday(d: Date = new Date()): string {
 }
 
 /** 生成唯一 id */
-export function uid(): string {
-  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
+/** 生成唯一 id；prefix 便于在 devtools 里分辨这是班级还是记录 */
+export function uid(prefix = ''): string {
+  const id = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
+  return prefix ? `${prefix}-${id}` : id
 }
 
 /**

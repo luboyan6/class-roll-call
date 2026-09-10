@@ -1,6 +1,6 @@
 import { useMemo, useState, type ReactNode } from 'react'
-import { ChevronLeft, ChevronRight, History, Target, Users } from 'lucide-react'
-import { useRollCallStore } from '@/store/rollCallStore'
+import { ChevronLeft, ChevronRight, History, School, Target } from 'lucide-react'
+import { useRollCallStore, selectActiveClass } from '@/store/rollCallStore'
 import { CatLogo } from './CatLogo'
 import { STATUS_META, cn, todayKey } from '@/lib/utils'
 
@@ -58,7 +58,7 @@ function PanelCard({
 export function StagePanel() {
   const students = useRollCallStore((s) => s.students)
   const records = useRollCallStore((s) => s.records)
-  const mode = useRollCallStore((s) => s.mode)
+  const activeClass = useRollCallStore(selectActiveClass)
   const [open, setOpen] = useState(true)
 
   const todayRecords = useMemo(() => {
@@ -72,9 +72,6 @@ export function StagePanel() {
   )
 
   const recent = useMemo(() => todayRecords.slice(-3).reverse(), [todayRecords])
-
-  const modeLabel =
-    mode === 'weighted' ? '加权随机' : mode === 'random' ? '纯随机' : '顺序轮询'
 
   if (!open) {
     return (
@@ -103,8 +100,8 @@ export function StagePanel() {
           />
 
           <PanelCard
-            icon={<Users className="h-5 w-5 text-stage-neon" aria-hidden="true" />}
-            title={modeLabel}
+            icon={<School className="h-5 w-5 text-stage-neon" aria-hidden="true" />}
+            title={activeClass ? `${activeClass.name} 班` : '当前班级'}
             value={`${students.length} 人`}
           />
 

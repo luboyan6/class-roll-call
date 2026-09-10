@@ -8,7 +8,7 @@ import {
   UserPlus,
   Check,
 } from 'lucide-react'
-import { useRollCallStore } from '@/store/rollCallStore'
+import { useRollCallStore, selectActiveClass } from '@/store/rollCallStore'
 import {
   STATE_VERSION,
   clearState,
@@ -21,9 +21,12 @@ import { Button } from './ui/Button'
 export function DataManager() {
   const students = useRollCallStore((s) => s.students)
   const records = useRollCallStore((s) => s.records)
+  const allRecords = useRollCallStore((s) => s.allRecords)
+  const classes = useRollCallStore((s) => s.classes)
+  const activeClassId = useRollCallStore((s) => s.activeClassId)
+  const activeClass = useRollCallStore(selectActiveClass)
   const skipCalledToday = useRollCallStore((s) => s.skipCalledToday)
   const setSkipCalledToday = useRollCallStore((s) => s.setSkipCalledToday)
-  const sequentialCursor = useRollCallStore((s) => s.sequentialCursor)
   const settings = useRollCallStore((s) => s.settings)
   const addStudent = useRollCallStore((s) => s.addStudent)
   const resetToday = useRollCallStore((s) => s.resetToday)
@@ -86,7 +89,9 @@ export function DataManager() {
               添加
             </Button>
           </div>
-          <p className="mt-2 text-xs text-muted-foreground">当前 {students.length} 人</p>
+          <p className="mt-2 text-xs text-muted-foreground">
+            {activeClass ? `${activeClass.name} 班` : '当前班级'} · {students.length} 人
+          </p>
         </div>
 
         {/* 点名规则 */}
@@ -113,8 +118,8 @@ export function DataManager() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => exportRecordsToCSV(records)}
-              disabled={records.length === 0}
+              onClick={() => exportRecordsToCSV(allRecords)}
+              disabled={allRecords.length === 0}
             >
               <Download className="h-4 w-4" aria-hidden="true" />
               CSV 记录
@@ -125,9 +130,9 @@ export function DataManager() {
               onClick={() =>
                 exportStateToJSON({
                   version: STATE_VERSION,
-                  students,
-                  records,
-                  sequentialCursor,
+                  classes,
+                  activeClassId,
+                  records: allRecords,
                   settings,
                 })
               }
@@ -151,7 +156,9 @@ export function DataManager() {
               }}
             />
           </div>
-          <p className="mt-2 text-xs text-muted-foreground">共 {records.length} 条记录</p>
+          <p className="mt-2 text-xs text-muted-foreground">
+            全部班级共 {allRecords.length} 条记录，当前班级 {records.length} 条
+          </p>
         </div>
 
         {/* 重置 */}
@@ -160,7 +167,7 @@ export function DataManager() {
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" size="sm" onClick={resetToday} disabled={records.length === 0}>
               <RotateCcw className="h-4 w-4" aria-hidden="true" />
-              开始新一轮
+              本班新一轮
             </Button>
             <Button
               variant={confirmReset ? 'danger' : 'outline'}
@@ -181,7 +188,7 @@ export function DataManager() {
             </Button>
           </div>
           <p className="mt-2 text-xs text-muted-foreground">
-            「开始新一轮」仅清空今日记录，「清空全部」会恢复初始名单
+            「本班新一轮」仅清空当前班级今日记录，「清空全部」会恢复初始班级与名单
           </p>
         </div>
       </div>
